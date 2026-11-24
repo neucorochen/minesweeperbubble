@@ -64,6 +64,7 @@
   const modeBadgeText   = document.getElementById("modeBadgeText");
   const btnSwapControls = document.getElementById("btnSwapControls");
   const controlsHint    = document.getElementById("controlsHint");
+  const btnMusic        = document.getElementById("btnMusic");
   const btnSound        = document.getElementById("btnSound");
   const btnRestart      = document.getElementById("btnRestart");
   const mascot          = document.getElementById("mascot");
@@ -151,7 +152,7 @@
       } else {
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.14; // лёгкая гравитация капель
+        p.vy += 0.14;
         p.alpha -= 0.028;
         if (p.alpha <= 0) {
           particles.splice(i, 1);
@@ -163,7 +164,6 @@
         fxCtx.beginPath();
         fxCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         fxCtx.fill();
-        // Белый блик на капельке
         fxCtx.fillStyle = "rgba(255,255,255,0.85)";
         fxCtx.beginPath();
         fxCtx.arc(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.32, 0, Math.PI * 2);
@@ -187,6 +187,13 @@
 
   function updateSoundButton() {
     btnSound.textContent = window.AeroAudio.isEnabled() ? "🔊 звук: вкл" : "🔇 звук: выкл";
+  }
+
+  function updateMusicButton() {
+    if (!btnMusic) return;
+    const on = window.AeroAudio.isMusicEnabled();
+    btnMusic.textContent = on ? "🎵 музыка: вкл" : "🎵 музыка: выкл";
+    btnMusic.classList.toggle("active", on);
   }
 
   function updateControlsUI() {
@@ -423,12 +430,10 @@
     resizeFxCanvas();
     window.AeroAudio.playBoom();
 
-    // Трясём всё окно
     aeroWindow.classList.remove("shaking");
     void aeroWindow.offsetWidth;
     aeroWindow.classList.add("shaking");
 
-    // Сначала показываем все мины
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (grid[r][c].mine) {
@@ -444,7 +449,6 @@
 
     say("Ой-ой! Всё поле лопнуло! 💥");
 
-    // Запускаем волну лопания всех клеток от взорвавшейся мины
     const panelRect = boardPanel.getBoundingClientRect();
     let maxDelay = 0;
     let popCounter = 0;
@@ -474,7 +478,6 @@
       }
     }
 
-    // Показываем окно поражения после того, как поле лопнет
     setTimeout(() => {
       if (mySession !== sessionId) return;
       overlayTitle.textContent = "Бум! Поле лопнуло 💥";
@@ -565,6 +568,19 @@
     say(swapControls ? "Теперь ЛКМ ставит флажки, а ПКМ открывает!" : "Вернули классику: ЛКМ открывает, ПКМ — флажки!");
   });
 
+  if (btnMusic) {
+    btnMusic.addEventListener("click", () => {
+      window.AeroAudio.toggleMusic();
+      updateMusicButton();
+      window.AeroAudio.playClick();
+    });
+  }
+
+  // Автозапуск музыки при первом клике, если она была включена в прошлый раз
+  document.addEventListener("pointerdown", () => {
+    window.AeroAudio.resumeMusicIfEnabled();
+  }, { once: true });
+
   btnSound.addEventListener("click", () => {
     window.AeroAudio.toggle();
     updateSoundButton();
@@ -614,6 +630,7 @@
   // Запуск
   window.JellyPhysics.attachUI();
   updateSoundButton();
+  updateMusicButton();
   updateControlsUI();
   initGame("easy");
 })();
