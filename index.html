@@ -60,7 +60,9 @@
 
     <div class="window-body">
       <!-- Игровое поле -->
-      <section class="board-panel">
+      <section class="board-panel" id="boardPanel">
+        <canvas class="fx-canvas" id="fxCanvas" aria-hidden="true"></canvas>
+
         <div class="board-scroll">
           <div class="board" id="board" role="grid" aria-label="Игровое поле Сапёра"></div>
         </div>
@@ -101,8 +103,8 @@
             <button class="aero-btn diff-btn jelly-ui" data-diff="medium">любитель</button>
             <button class="aero-btn diff-btn jelly-ui" data-diff="hard">профи</button>
           </div>
-          <button class="aero-btn aero-btn-green jelly-ui full-btn" id="btnModeToggle">
-            💧 режим: открыть
+          <button class="aero-btn aero-btn-green jelly-ui full-btn" id="btnSwapControls">
+            🔄 ЛКМ: открыть · ПКМ: флаг
           </button>
         </div>
 
@@ -114,40 +116,18 @@
           <button class="aero-btn jelly-ui full-btn" id="btnRestart">
             начать заново
           </button>
-          <p class="controls-hint">
+          <p class="controls-hint" id="controlsHint">
             ЛКМ — открыть клетку<br />
             ПКМ — поставить флажок<br />
             Клик по цифре — открыть вокруг
           </p>
         </div>
 
-        <!-- Маскот (можно заменить SVG на свой <img src="mascot.png">) -->
+        <!-- Твой маскот -->
         <div class="mascot-area">
           <div class="mascot-speech" id="mascotSpeech">Кликай смелее — первый ход безопасен!</div>
           <div class="mascot jelly-ui" id="mascot" title="Нажми на меня!">
-            <svg viewBox="0 0 120 120" width="96" height="96" aria-hidden="true">
-              <defs>
-                <radialGradient id="slimeGrad" cx="35%" cy="28%" r="70%">
-                  <stop offset="0%" stop-color="#e8fbff" />
-                  <stop offset="45%" stop-color="#58c7ff" />
-                  <stop offset="100%" stop-color="#0b7cd8" />
-                </radialGradient>
-              </defs>
-              <ellipse cx="60" cy="108" rx="34" ry="7" fill="rgba(12,110,190,0.22)" />
-              <path d="M22,74 C20,38 38,20 60,20 C82,20 100,38 98,74 C96,95 82,102 60,102 C38,102 24,95 22,74 Z"
-                    fill="url(#slimeGrad)" stroke="#ffffff" stroke-width="2.5" />
-              <ellipse cx="43" cy="37" rx="14" ry="7" transform="rotate(-24 43 37)" fill="rgba(255,255,255,0.72)" />
-              <circle cx="62" cy="30" r="3.5" fill="rgba(255,255,255,0.65)" />
-              <g id="mascotFace">
-                <circle cx="46" cy="64" r="5" fill="#0b3b66" />
-                <circle cx="74" cy="64" r="5" fill="#0b3b66" />
-                <circle cx="44.5" cy="62" r="1.8" fill="#ffffff" />
-                <circle cx="72.5" cy="62" r="1.8" fill="#ffffff" />
-                <ellipse cx="36" cy="72" rx="5.5" ry="3" fill="rgba(255,110,160,0.45)" />
-                <ellipse cx="84" cy="72" rx="5.5" ry="3" fill="rgba(255,110,160,0.45)" />
-                <path d="M53,73 Q60,80 67,73" fill="none" stroke="#0b3b66" stroke-width="3" stroke-linecap="round" />
-              </g>
-            </svg>
+            <img src="mascot.png" alt="Маскот" class="mascot-img" draggable="false" />
           </div>
         </div>
       </aside>
