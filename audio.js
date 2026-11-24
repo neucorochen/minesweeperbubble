@@ -45,21 +45,25 @@ window.AeroAudio = (() => {
       return enabled;
     },
     playPop(pitch = 1) {
-      tone(340 * pitch, 680 * pitch, 0.09, "sine", 0.14);
+      tone(340 * pitch, 720 * pitch, 0.09, "sine", 0.14);
     },
     playCascade(step) {
       const mult = 1 + Math.min(step, 10) * 0.08;
-      tone(380 * mult, 760 * mult, 0.075, "sine", 0.09);
+      tone(380 * mult, 780 * mult, 0.075, "sine", 0.09);
+    },
+    playBoardPop(step = 0) {
+      const pitch = 0.85 + (step % 7) * 0.12;
+      tone(290 * pitch, 820 * pitch, 0.065, "sine", 0.085);
     },
     playFlag(placed) {
       if (placed) {
-        tone(520, 740, 0.08, "triangle", 0.12);
+        tone(520, 790, 0.085, "triangle", 0.12);
       } else {
-        tone(640, 420, 0.08, "triangle", 0.1);
+        tone(640, 410, 0.085, "triangle", 0.1);
       }
     },
     playClick() {
-      tone(440, 590, 0.06, "sine", 0.1);
+      tone(440, 610, 0.06, "sine", 0.1);
     },
     playWin() {
       [523, 659, 784, 1046].forEach((freq, i) => {
@@ -67,8 +71,9 @@ window.AeroAudio = (() => {
       });
     },
     playBoom() {
-      tone(190, 45, 0.38, "sawtooth", 0.18);
-      tone(120, 38, 0.45, "triangle", 0.2, 0.03);
+      tone(210, 42, 0.42, "sawtooth", 0.17);
+      tone(135, 36, 0.48, "triangle", 0.22, 0.02);
+      tone(520, 120, 0.18, "sine", 0.14, 0.04);
     }
   };
 })();
