@@ -1,6 +1,7 @@
 window.AeroStorage = (() => {
   const BEST_PREFIX = "aero_minesweeper_best_";
   const SOUND_KEY = "aero_minesweeper_sound";
+  const MUSIC_KEY = "aero_minesweeper_music";
 
   function getBest(diff) {
     try {
@@ -18,9 +19,7 @@ window.AeroStorage = (() => {
         localStorage.setItem(BEST_PREFIX + diff, String(seconds));
         return true;
       }
-    } catch {
-      // Игнорируем, если localStorage недоступен
-    }
+    } catch {}
     return false;
   }
 
@@ -39,5 +38,27 @@ window.AeroStorage = (() => {
     } catch {}
   }
 
-  return { getBest, setBestIfBetter, getSoundEnabled, setSoundEnabled };
+  function getMusicEnabled() {
+    try {
+      const val = localStorage.getItem(MUSIC_KEY);
+      return val === "1"; // По умолчанию выключена до первого нажатия
+    } catch {
+      return false;
+    }
+  }
+
+  function setMusicEnabled(enabled) {
+    try {
+      localStorage.setItem(MUSIC_KEY, enabled ? "1" : "0");
+    } catch {}
+  }
+
+  return {
+    getBest,
+    setBestIfBetter,
+    getSoundEnabled,
+    setSoundEnabled,
+    getMusicEnabled,
+    setMusicEnabled
+  };
 })();
