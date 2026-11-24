@@ -3,8 +3,9 @@ window.JellyPhysics = (() => {
   let rafId = null;
   let lastTime = 0;
 
-  const STIFFNESS = 300;
-  const DAMPING = 14;
+  // Более упругие параметры для выраженного эффекта желе
+  const STIFFNESS = 340;
+  const DAMPING = 11.5;
 
   function getState(el) {
     let s = springs.get(el);
@@ -59,7 +60,7 @@ window.JellyPhysics = (() => {
     if (springs.size > 0) {
       rafId = requestAnimationFrame(tick);
     } else {
-      rafId = null; // Засыпаем, пока нет активных пружин
+      rafId = null;
     }
   }
 
@@ -81,15 +82,18 @@ window.JellyPhysics = (() => {
 
   function attachUI(selector = ".jelly-ui") {
     document.querySelectorAll(selector).forEach((el) => {
-      el.addEventListener("pointerenter", () => setTarget(el, 1.05, 1.05));
+      el.addEventListener("pointerenter", () => {
+        setTarget(el, 1.06, 1.06);
+        impulse(el, 1.2, -1.2);
+      });
       el.addEventListener("pointerleave", () => setTarget(el, 1, 1));
       el.addEventListener("pointerdown", () => {
-        setTarget(el, 0.94, 0.94);
-        impulse(el, 2.6, -2.6);
+        setTarget(el, 0.92, 0.92);
+        impulse(el, 3.2, -3.2);
       });
       el.addEventListener("pointerup", () => {
-        setTarget(el, 1.05, 1.05);
-        impulse(el, -1.8, 1.8);
+        setTarget(el, 1.06, 1.06);
+        impulse(el, -2.4, 2.4);
       });
     });
   }
@@ -102,11 +106,18 @@ window.JellyPhysics = (() => {
         if (dist === 0 || dist > radius) continue;
         const el = cellsGrid[r]?.[c];
         if (!el) continue;
-        const strength = (1 - dist / (radius + 0.6)) * 3.4;
-        setTimeout(() => impulse(el, strength, -strength), dist * 35);
+        const strength = (1 - dist / (radius + 0.6)) * 4.2;
+        setTimeout(() => impulse(el, strength, -strength), dist * 34);
       }
     }
   }
 
-  return { impulse, setTarget, attachUI, ripple };
+  function reset() {
+    for (const el of springs.keys()) {
+      el.style.transform = "";
+    }
+    springs.clear();
+  }
+
+  return { impulse, setTarget, attachUI, ripple, reset };
 })();
