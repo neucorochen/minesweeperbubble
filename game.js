@@ -285,7 +285,7 @@
 
     boardEl.appendChild(fragment);
     resizeFxCanvas();
-    say("Кликай смелее — первый ход всегда безопасен!");
+    say("Кликай смелее!");
   }
 
   function placeMines(safeR, safeC) {
