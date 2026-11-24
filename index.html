@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aero Сапёр — Frutiger Aero Minesweeper</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="storage.js"></script>
+  <script defer src="audio.js"></script>
+  <script defer src="physics.js"></script>
+  <script defer src="game.js"></script>
+</head>
+<body>
+  <!-- Фон Frutiger Aero -->
+  <div class="aero-bg" aria-hidden="true">
+    <div class="sun-glow"></div>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+
+    <div class="city-skyline">
+      <div class="tower tower-1"></div>
+      <div class="tower tower-2"></div>
+      <div class="tower tower-3"></div>
+    </div>
+
+    <div class="hills-back"></div>
+    <div class="lake">
+      <div class="lake-shimmer"></div>
+    </div>
+    <div class="hills-front"></div>
+
+    <div class="floating-bubbles">
+      <span class="bg-bubble b1"></span>
+      <span class="bg-bubble b2"></span>
+      <span class="bg-bubble b3"></span>
+      <span class="bg-bubble b4"></span>
+      <span class="bg-bubble b5"></span>
+    </div>
+  </div>
+
+  <!-- Стеклянное окно Windows 7 / Vista Aero -->
+  <main class="aero-window" id="aeroWindow">
+    <header class="window-titlebar">
+      <h1 class="window-title">Aero Сапёр</h1>
+
+      <div class="titlebar-right">
+        <div class="mode-pill" id="modeBadge">
+          <span class="pill-dot"></span>
+          <span id="modeBadgeText">новичок 9×9</span>
+        </div>
+
+        <div class="window-controls">
+          <button class="win-btn" id="btnMin" title="Свернуть" aria-label="Свернуть">—</button>
+          <button class="win-btn" id="btnMax" title="Развернуть" aria-label="Развернуть">□</button>
+          <button class="win-btn win-close" id="btnClose" title="Закрыть" aria-label="Закрыть">✕</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="window-body">
+      <!-- Игровое поле -->
+      <section class="board-panel">
+        <div class="board-scroll">
+          <div class="board" id="board" role="grid" aria-label="Игровое поле Сапёра"></div>
+        </div>
+
+        <div class="board-overlay hidden" id="boardOverlay">
+          <div class="overlay-card">
+            <h2 id="overlayTitle">Победа!</h2>
+            <p id="overlaySub">Поле очищено</p>
+            <button class="aero-btn aero-btn-green jelly-ui" id="overlayRestart">
+              сыграть ещё раз
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Правая боковая панель -->
+      <aside class="sidebar">
+        <div class="aero-card">
+          <h2 class="card-title">статистика</h2>
+          <div class="stat-row">
+            <span>мины</span>
+            <strong id="minesLeft">10</strong>
+          </div>
+          <div class="stat-row">
+            <span>время</span>
+            <strong id="timer">000</strong>
+          </div>
+          <div class="stat-row">
+            <span>рекорд</span>
+            <strong id="bestTime">—</strong>
+          </div>
+        </div>
+
+        <div class="aero-card">
+          <h2 class="card-title">сложность</h2>
+          <div class="diff-group">
+            <button class="aero-btn diff-btn jelly-ui active" data-diff="easy">новичок</button>
+            <button class="aero-btn diff-btn jelly-ui" data-diff="medium">любитель</button>
+            <button class="aero-btn diff-btn jelly-ui" data-diff="hard">профи</button>
+          </div>
+          <button class="aero-btn aero-btn-green jelly-ui full-btn" id="btnModeToggle">
+            💧 режим: открыть
+          </button>
+        </div>
+
+        <div class="aero-card">
+          <h2 class="card-title">управление</h2>
+          <button class="aero-btn jelly-ui full-btn" id="btnSound">
+            🔊 звук: вкл
+          </button>
+          <button class="aero-btn jelly-ui full-btn" id="btnRestart">
+            начать заново
+          </button>
+          <p class="controls-hint">
+            ЛКМ — открыть клетку<br />
+            ПКМ — поставить флажок<br />
+            Клик по цифре — открыть вокруг
+          </p>
+        </div>
+
+        <!-- Маскот (можно заменить SVG на свой <img src="mascot.png">) -->
+        <div class="mascot-area">
+          <div class="mascot-speech" id="mascotSpeech">Кликай смелее — первый ход безопасен!</div>
+          <div class="mascot jelly-ui" id="mascot" title="Нажми на меня!">
+            <svg viewBox="0 0 120 120" width="96" height="96" aria-hidden="true">
+              <defs>
+                <radialGradient id="slimeGrad" cx="35%" cy="28%" r="70%">
+                  <stop offset="0%" stop-color="#e8fbff" />
+                  <stop offset="45%" stop-color="#58c7ff" />
+                  <stop offset="100%" stop-color="#0b7cd8" />
+                </radialGradient>
+              </defs>
+              <ellipse cx="60" cy="108" rx="34" ry="7" fill="rgba(12,110,190,0.22)" />
+              <path d="M22,74 C20,38 38,20 60,20 C82,20 100,38 98,74 C96,95 82,102 60,102 C38,102 24,95 22,74 Z"
+                    fill="url(#slimeGrad)" stroke="#ffffff" stroke-width="2.5" />
+              <ellipse cx="43" cy="37" rx="14" ry="7" transform="rotate(-24 43 37)" fill="rgba(255,255,255,0.72)" />
+              <circle cx="62" cy="30" r="3.5" fill="rgba(255,255,255,0.65)" />
+              <g id="mascotFace">
+                <circle cx="46" cy="64" r="5" fill="#0b3b66" />
+                <circle cx="74" cy="64" r="5" fill="#0b3b66" />
+                <circle cx="44.5" cy="62" r="1.8" fill="#ffffff" />
+                <circle cx="72.5" cy="62" r="1.8" fill="#ffffff" />
+                <ellipse cx="36" cy="72" rx="5.5" ry="3" fill="rgba(255,110,160,0.45)" />
+                <ellipse cx="84" cy="72" rx="5.5" ry="3" fill="rgba(255,110,160,0.45)" />
+                <path d="M53,73 Q60,80 67,73" fill="none" stroke="#0b3b66" stroke-width="3" stroke-linecap="round" />
+              </g>
+            </svg>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>
