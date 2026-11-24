@@ -1,27 +1,74 @@
 (() => {
   const DIFFICULTIES = {
-    easy:   { rows: 9,  cols: 9,  mines: 10, label: "новичок 9×9",  cellSize: 40 },
-    medium: { rows: 14, cols: 14, mines: 30, label: "любитель 14×14", cellSize: 32 },
-    hard:   { rows: 16, cols: 24, mines: 72, label: "профи 16×24",  cellSize: 28 }
+    easy:   { rows: 9,  cols: 9,  mines: 10, label: "новичок 9×9",    cellSize: 42 },
+    medium: { rows: 14, cols: 14, mines: 30, label: "любитель 14×14", cellSize: 33 },
+    hard:   { rows: 16, cols: 24, mines: 72, label: "профи 16×24",    cellSize: 28 }
   };
 
+  // Глянцевый Frutiger Aero флажок
+  const FLAG_SVG = `
+    <svg class="cell-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="flagGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fff4b8"/>
+          <stop offset="45%" stop-color="#ff5e4d"/>
+          <stop offset="100%" stop-color="#c9182b"/>
+        </linearGradient>
+        <linearGradient id="poleGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="55%" stop-color="#bfeaff"/>
+          <stop offset="100%" stop-color="#4ba8e0"/>
+        </linearGradient>
+      </defs>
+      <ellipse cx="26" cy="55" rx="14" ry="4" fill="rgba(160,40,15,0.28)"/>
+      <rect x="20" y="10" width="6" height="44" rx="3" fill="url(#poleGrad)" stroke="#ffffff" stroke-width="1.5"/>
+      <circle cx="23" cy="10" r="4.5" fill="#fff7cc" stroke="#ffffff" stroke-width="1.5"/>
+      <path d="M25 13 C36 10, 44 18, 54 15 C51 23, 52 29, 54 35 C44 38, 36 30, 25 34 Z"
+            fill="url(#flagGrad)" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M29 17 C36 15, 42 19, 48 18" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`;
+
+  // Глянцевая мина-пузырёк
+  const MINE_SVG = `
+    <svg class="cell-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <radialGradient id="mineGrad" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" stop-color="#ffb8c6"/>
+          <stop offset="40%" stop-color="#5a183b"/>
+          <stop offset="100%" stop-color="#1b0918"/>
+        </radialGradient>
+      </defs>
+      <g stroke="#2a0d22" stroke-width="4.5" stroke-linecap="round">
+        <line x1="32" y1="7" x2="32" y2="57"/>
+        <line x1="7" y1="32" x2="57" y2="32"/>
+        <line x1="14" y1="14" x2="50" y2="50"/>
+        <line x1="50" y1="14" x2="14" y2="50"/>
+      </g>
+      <circle cx="32" cy="32" r="17" fill="url(#mineGrad)" stroke="#ffd6e0" stroke-width="2"/>
+      <ellipse cx="26" cy="24" rx="5.5" ry="3.2" transform="rotate(-28 26 24)" fill="rgba(255,255,255,0.82)"/>
+    </svg>`;
+
   // DOM-элементы
-  const aeroWindow     = document.getElementById("aeroWindow");
-  const boardEl        = document.getElementById("board");
-  const boardOverlay   = document.getElementById("boardOverlay");
-  const overlayTitle   = document.getElementById("overlayTitle");
-  const overlaySub     = document.getElementById("overlaySub");
-  const overlayRestart = document.getElementById("overlayRestart");
-  const minesLeftEl    = document.getElementById("minesLeft");
-  const timerEl        = document.getElementById("timer");
-  const bestTimeEl     = document.getElementById("bestTime");
-  const modeBadgeText  = document.getElementById("modeBadgeText");
-  const btnModeToggle  = document.getElementById("btnModeToggle");
-  const btnSound       = document.getElementById("btnSound");
-  const btnRestart     = document.getElementById("btnRestart");
-  const mascot         = document.getElementById("mascot");
-  const mascotSpeech   = document.getElementById("mascotSpeech");
-  const diffButtons    = document.querySelectorAll(".diff-btn");
+  const aeroWindow      = document.getElementById("aeroWindow");
+  const boardPanel      = document.getElementById("boardPanel");
+  const fxCanvas        = document.getElementById("fxCanvas");
+  const fxCtx           = fxCanvas.getContext("2d");
+  const boardEl         = document.getElementById("board");
+  const boardOverlay    = document.getElementById("boardOverlay");
+  const overlayTitle    = document.getElementById("overlayTitle");
+  const overlaySub      = document.getElementById("overlaySub");
+  const overlayRestart  = document.getElementById("overlayRestart");
+  const minesLeftEl     = document.getElementById("minesLeft");
+  const timerEl         = document.getElementById("timer");
+  const bestTimeEl      = document.getElementById("bestTime");
+  const modeBadgeText   = document.getElementById("modeBadgeText");
+  const btnSwapControls = document.getElementById("btnSwapControls");
+  const controlsHint    = document.getElementById("controlsHint");
+  const btnSound        = document.getElementById("btnSound");
+  const btnRestart      = document.getElementById("btnRestart");
+  const mascot          = document.getElementById("mascot");
+  const mascotSpeech    = document.getElementById("mascotSpeech");
+  const diffButtons     = document.querySelectorAll(".diff-btn");
 
   // Состояние игры
   let currentDiff = "easy";
@@ -30,19 +77,132 @@
   let cellEls = [];
   let firstClick = true;
   let gameOver = false;
-  let flagMode = false;
+  let swapControls = false; // false: ЛКМ открыть, ПКМ флаг | true: наоборот
   let flagsCount = 0;
   let revealedCount = 0;
   let seconds = 0;
   let timerId = null;
+  let sessionId = 0;
 
+  // ==================== ЧАСТИЦЫ ЛОПАНИЯ ЖЕЛЕ ====================
+  let particles = [];
+  let fxRafId = null;
+
+  function resizeFxCanvas() {
+    const rect = boardPanel.getBoundingClientRect();
+    fxCanvas.width = rect.width;
+    fxCanvas.height = rect.height;
+  }
+
+  function spawnPopBurst(x, y, isMine = false) {
+    const colors = isMine
+      ? ["#ff6b81", "#ffd166", "#ff4757", "#ffffff"]
+      : ["#70d6ff", "#a0f0ff", "#38b6ff", "#ffffff"];
+
+    // Расходящееся кольцо пузырька
+    particles.push({
+      type: "ring",
+      x, y,
+      r: 6,
+      maxR: isMine ? 34 : 24,
+      alpha: 0.9,
+      color: isMine ? "#ff8fa3" : "#b8f2ff"
+    });
+
+    // Желейные капельки
+    const count = isMine ? 9 : 5;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.6;
+      const speed = (isMine ? 2.6 : 1.6) + Math.random() * 2.8;
+      particles.push({
+        type: "drop",
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1.2,
+        r: (isMine ? 4.5 : 3.2) + Math.random() * 3.5,
+        alpha: 1,
+        color: colors[i % colors.length]
+      });
+    }
+
+    if (!fxRafId) fxRafId = requestAnimationFrame(renderFx);
+  }
+
+  function renderFx() {
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      if (p.type === "ring") {
+        p.r += 2.2;
+        p.alpha -= 0.065;
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        fxCtx.save();
+        fxCtx.globalAlpha = p.alpha;
+        fxCtx.strokeStyle = p.color;
+        fxCtx.lineWidth = 2.5;
+        fxCtx.beginPath();
+        fxCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        fxCtx.stroke();
+        fxCtx.restore();
+      } else {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.14; // лёгкая гравитация капель
+        p.alpha -= 0.028;
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        fxCtx.save();
+        fxCtx.globalAlpha = p.alpha;
+        fxCtx.fillStyle = p.color;
+        fxCtx.beginPath();
+        fxCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        fxCtx.fill();
+        // Белый блик на капельке
+        fxCtx.fillStyle = "rgba(255,255,255,0.85)";
+        fxCtx.beginPath();
+        fxCtx.arc(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.32, 0, Math.PI * 2);
+        fxCtx.fill();
+        fxCtx.restore();
+      }
+    }
+
+    if (particles.length > 0) {
+      fxRafId = requestAnimationFrame(renderFx);
+    } else {
+      fxRafId = null;
+    }
+  }
+
+  // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
   function say(text) {
     mascotSpeech.textContent = text;
-    window.JellyPhysics.impulse(mascot, 2.2, -2.2);
+    window.JellyPhysics.impulse(mascot, 2.8, -2.8);
   }
 
   function updateSoundButton() {
     btnSound.textContent = window.AeroAudio.isEnabled() ? "🔊 звук: вкл" : "🔇 звук: выкл";
+  }
+
+  function updateControlsUI() {
+    if (swapControls) {
+      btnSwapControls.textContent = "🔄 ЛКМ: флаг · ПКМ: открыть";
+      btnSwapControls.classList.remove("aero-btn-green");
+      btnSwapControls.classList.add("aero-btn-swapped");
+      controlsHint.innerHTML =
+        "ЛКМ — поставить флажок<br />ПКМ — открыть клетку<br />ПКМ по цифре — открыть вокруг";
+    } else {
+      btnSwapControls.textContent = "🔄 ЛКМ: открыть · ПКМ: флаг";
+      btnSwapControls.classList.remove("aero-btn-swapped");
+      btnSwapControls.classList.add("aero-btn-green");
+      controlsHint.innerHTML =
+        "ЛКМ — открыть клетку<br />ПКМ — поставить флажок<br />ЛКМ по цифре — открыть вокруг";
+    }
   }
 
   function updateBestDisplay() {
@@ -63,7 +223,9 @@
     timerId = null;
   }
 
+  // ==================== ИНИЦИАЛИЗАЦИЯ ====================
   function initGame(diff = currentDiff) {
+    sessionId++;
     currentDiff = diff;
     const cfg = DIFFICULTIES[diff];
     rows = cfg.rows;
@@ -71,6 +233,11 @@
     totalMines = cfg.mines;
 
     stopTimer();
+    window.JellyPhysics.reset();
+    particles = [];
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+    aeroWindow.classList.remove("shaking");
+
     firstClick = true;
     gameOver = false;
     flagsCount = 0;
@@ -110,6 +277,7 @@
     }
 
     boardEl.appendChild(fragment);
+    resizeFxCanvas();
     say("Кликай смелее — первый ход всегда безопасен!");
   }
 
@@ -147,6 +315,7 @@
     }
   }
 
+  // ==================== ИГРОВЫЕ ДЕЙСТВИЯ ====================
   function toggleFlag(r, c) {
     if (gameOver) return;
     const cell = grid[r][c];
@@ -158,9 +327,9 @@
 
     const el = cellEls[r][c];
     el.classList.toggle("flagged", cell.flagged);
-    el.textContent = cell.flagged ? "🚩" : "";
+    el.innerHTML = cell.flagged ? FLAG_SVG : "";
 
-    window.JellyPhysics.impulse(el, 3.2, -3.2);
+    window.JellyPhysics.impulse(el, 4.2, -4.2);
     window.AeroAudio.playFlag(cell.flagged);
   }
 
@@ -169,7 +338,6 @@
     const cell = grid[r][c];
     if (cell.flagged) return;
 
-    // Chord-клик по уже открытой цифре
     if (cell.revealed) {
       if (cell.count > 0) chordReveal(r, c);
       return;
@@ -186,7 +354,7 @@
       return;
     }
 
-    // Каскадное BFS-открытие
+    const mySession = sessionId;
     const queue = [[r, c, 0]];
     const visited = new Set([`${r},${c}`]);
     let openedNow = 0;
@@ -202,13 +370,14 @@
 
       const el = cellEls[cr][cc];
       setTimeout(() => {
+        if (mySession !== sessionId) return;
         el.classList.add("revealed");
         if (cur.count > 0) {
           el.textContent = cur.count;
           el.classList.add(`n${cur.count}`);
         }
-        window.JellyPhysics.impulse(el, -2.4, 2.4);
-      }, wave * 22);
+        window.JellyPhysics.impulse(el, -3.2, 3.2);
+      }, wave * 24);
 
       if (cur.count === 0) {
         forEachNeighbor(cr, cc, (nr, nc) => {
@@ -246,27 +415,72 @@
     });
   }
 
+  // ==================== ТРЯСКА И ЛОПАНИЕ ВСЕГО ПОЛЯ ====================
   function explode(hitR, hitC) {
+    const mySession = sessionId;
     gameOver = true;
     stopTimer();
+    resizeFxCanvas();
     window.AeroAudio.playBoom();
 
+    // Трясём всё окно
+    aeroWindow.classList.remove("shaking");
+    void aeroWindow.offsetWidth;
+    aeroWindow.classList.add("shaking");
+
+    // Сначала показываем все мины
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (grid[r][c].mine) {
           const el = cellEls[r][c];
+          el.classList.remove("flagged");
           el.classList.add("mine");
           if (r === hitR && c === hitC) el.classList.add("mine-exploded");
-          el.textContent = "💣";
-          window.JellyPhysics.impulse(el, 4, -4);
+          el.innerHTML = MINE_SVG;
+          window.JellyPhysics.impulse(el, 5, -5);
         }
       }
     }
 
-    say("Ой-ой! Пузырёк лопнул 💥");
-    overlayTitle.textContent = "Бум! Мина 💥";
-    overlaySub.textContent = "Попробуй ещё разок — в следующий раз повезёт!";
-    boardOverlay.classList.remove("hidden");
+    say("Ой-ой! Всё поле лопнуло! 💥");
+
+    // Запускаем волну лопания всех клеток от взорвавшейся мины
+    const panelRect = boardPanel.getBoundingClientRect();
+    let maxDelay = 0;
+    let popCounter = 0;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const dist = Math.hypot(r - hitR, c - hitC);
+        const delay = 220 + dist * 42 + Math.random() * 35;
+        if (delay > maxDelay) maxDelay = delay;
+
+        const el = cellEls[r][c];
+        const isMine = grid[r][c].mine;
+
+        setTimeout(() => {
+          if (mySession !== sessionId) return;
+          const rect = el.getBoundingClientRect();
+          const cx = rect.left - panelRect.left + rect.width / 2;
+          const cy = rect.top - panelRect.top + rect.height / 2;
+
+          el.classList.add("popping");
+          spawnPopBurst(cx, cy, isMine);
+
+          if (popCounter++ % 3 === 0) {
+            window.AeroAudio.playBoardPop(popCounter);
+          }
+        }, delay);
+      }
+    }
+
+    // Показываем окно поражения после того, как поле лопнет
+    setTimeout(() => {
+      if (mySession !== sessionId) return;
+      overlayTitle.textContent = "Бум! Поле лопнуло 💥";
+      overlaySub.textContent = "Попробуй ещё разок — в следующий раз повезёт!";
+      boardOverlay.classList.remove("hidden");
+    }, maxDelay + 340);
   }
 
   function checkWin() {
@@ -278,12 +492,11 @@
     const isRecord = window.AeroStorage.setBestIfBetter(currentDiff, seconds);
     updateBestDisplay();
 
-    // Автоматически отмечаем оставшиеся мины флажками
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (grid[r][c].mine && !grid[r][c].flagged) {
           cellEls[r][c].classList.add("flagged");
-          cellEls[r][c].textContent = "🚩";
+          cellEls[r][c].innerHTML = FLAG_SVG;
         }
       }
     }
@@ -298,8 +511,9 @@
   // ==================== ДЕЛЕГИРОВАНИЕ СОБЫТИЙ НА ПОЛЕ ====================
   boardEl.addEventListener("pointerover", (e) => {
     const cell = e.target.closest(".cell");
-    if (cell && !cell.classList.contains("revealed")) {
-      window.JellyPhysics.setTarget(cell, 1.07, 1.07);
+    if (cell && !cell.classList.contains("revealed") && !gameOver) {
+      window.JellyPhysics.setTarget(cell, 1.09, 1.09);
+      window.JellyPhysics.impulse(cell, 1.1, -1.1);
     }
   });
 
@@ -310,25 +524,30 @@
 
   boardEl.addEventListener("pointerdown", (e) => {
     const cell = e.target.closest(".cell");
-    if (cell && !cell.classList.contains("revealed")) {
-      window.JellyPhysics.impulse(cell, 2.8, -2.8);
+    if (cell && !cell.classList.contains("revealed") && !gameOver) {
+      window.JellyPhysics.impulse(cell, 3.8, -3.8);
     }
   });
 
+  // ЛКМ
   boardEl.addEventListener("click", (e) => {
     const cell = e.target.closest(".cell");
     if (!cell) return;
     const r = Number(cell.dataset.r);
     const c = Number(cell.dataset.c);
-    if (flagMode) toggleFlag(r, c);
+    if (swapControls) toggleFlag(r, c);
     else revealCell(r, c);
   });
 
+  // ПКМ
   boardEl.addEventListener("contextmenu", (e) => {
     const cell = e.target.closest(".cell");
     if (!cell) return;
     e.preventDefault();
-    toggleFlag(Number(cell.dataset.r), Number(cell.dataset.c));
+    const r = Number(cell.dataset.r);
+    const c = Number(cell.dataset.c);
+    if (swapControls) revealCell(r, c);
+    else toggleFlag(r, c);
   });
 
   // ==================== UI-КНОПКИ И ОКНО ====================
@@ -339,10 +558,11 @@
     });
   });
 
-  btnModeToggle.addEventListener("click", () => {
-    flagMode = !flagMode;
-    btnModeToggle.textContent = flagMode ? "🚩 режим: флажок" : "💧 режим: открыть";
+  btnSwapControls.addEventListener("click", () => {
+    swapControls = !swapControls;
+    updateControlsUI();
     window.AeroAudio.playClick();
+    say(swapControls ? "Теперь ЛКМ ставит флажки, а ПКМ открывает!" : "Вернули классику: ЛКМ открывает, ПКМ — флажки!");
   });
 
   btnSound.addEventListener("click", () => {
@@ -362,16 +582,15 @@
 
   mascot.addEventListener("click", () => {
     const phrases = [
-      "Жмяк! Я желейный! 🫧",
+      "Жмяк! Желейное настроение! 🫧",
       "Свежий воздух Frutiger Aero~",
-      "Нажимай на цифру, чтобы быстро открыть соседей!",
+      "Кликай по цифре, чтобы быстро открыть соседей!",
       "Удачи в разминировании! ✨"
     ];
     window.AeroAudio.playPop(1.3);
     say(phrases[Math.floor(Math.random() * phrases.length)]);
   });
 
-  // Кнопки заголовка Windows 7
   document.getElementById("btnMin").addEventListener("click", () => {
     aeroWindow.classList.toggle("minimized");
     window.AeroAudio.playClick();
@@ -381,16 +600,20 @@
     aeroWindow.classList.remove("minimized");
     aeroWindow.classList.toggle("maximized");
     window.AeroAudio.playClick();
+    setTimeout(resizeFxCanvas, 260);
   });
 
   document.getElementById("btnClose").addEventListener("click", () => {
-    window.JellyPhysics.impulse(aeroWindow, 1.4, -1.4);
+    window.JellyPhysics.impulse(aeroWindow, 1.8, -1.8);
     window.AeroAudio.playPop(0.75);
     say("Не закрывай меня, я ещё хочу поиграть! 🥺");
   });
 
+  window.addEventListener("resize", resizeFxCanvas);
+
   // Запуск
   window.JellyPhysics.attachUI();
   updateSoundButton();
+  updateControlsUI();
   initGame("easy");
 })();
